@@ -10,7 +10,6 @@ import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 import lombok.Getter;
 import lombok.Setter;
-import lombok.ToString;
 
 @Entity
 @Table(name = "users")
@@ -36,12 +35,13 @@ public class User extends Account {
         uStringReturn.append("====================\n");
         uStringReturn.append("ID: ").append(getId()).append("\n");
         uStringReturn.append("Fullname: ").append(getFullname()).append("\n");
-        uStringReturn.append("CPF: ").append(getDocument()).append("\n");
+        uStringReturn.append("CPF/CNPJ: ").append(getDocument()).append("\n");
         uStringReturn.append("Email: ").append(getEmail()).append("\n");
         uStringReturn.append("Tipo: ").append(getTypeAcc()).append("\n");
         uStringReturn.append("Saldo: ").append(getBalance()).append("\n");
         uStringReturn.append("CREDITO: ").append(getCredit()).append("\n");
-        uStringReturn.append("====================");
+        uStringReturn.append("PIXKEY: ").append(getPixkey()).append("\n");
+        uStringReturn.append("====================\n");
 
         return uStringReturn.toString();
     }
