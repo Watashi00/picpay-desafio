@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>PicPay Demo</title>
+  <style>
+    :root {
+      --bg:#0f1724; --card:#0b1220; --accent:#06b6d4; --muted:#9ca3af; color-scheme:dark;
+    }
+    body {
+      font-family: Inter, Arial, sans-serif;
+      background: linear-gradient(180deg,#071429 0%,#071a2b 100%);
+      color: #e6eef6;
+      margin:0; padding:32px;
+    }
+    .container { max-width: 980px; margin:0 auto; }
+    .card { background: rgba(255,255,255,0.03); padding:20px; border-radius:12px; box-shadow:0 6px 24px rgba(2,6,23,0.6); margin-bottom:24px;}
+    h1,h2 { margin:0 0 12px; }
+    input[type=text], input[type=password], input[type=number] {
+      width:100%; padding:10px; border-radius:8px; border:1px solid rgba(255,255,255,0.06); background:transparent; color:inherit; margin-bottom:8px;
+    }
+    button { background: var(--accent); color:#042029; padding:10px 14px; border:none; border-radius:10px; cursor:pointer; font-weight:600; margin-top:8px; width:100%; }
+    .balance { font-size:28px; font-weight:700; color: var(--accent); margin:8px 0; }
+    .small { font-size:13px; color: var(--muted); }
+    .hidden { display:none; }
+    nav { display:flex; gap:8px; margin-bottom:12px; }
+    nav button { width:auto; padding:6px 12px; font-size:14px; }
+  </style>
+</head>
+<body>
+
+<div class="container">
+
+  <!-- LOGIN -->
+  <div id="loginPage" class="card">
+    <h1>Login</h1>
+    <p class="small">Digite seu email para entrar</p>
+    <input type="text" id="loginEmail" placeholder="Email" />
+    <button id="loginBtn">Entrar</button>
+  </div>
+
+  <!-- DASHBOARD -->
+  <div id="dashboardPage" class="hidden">
+
+    <div class="card">
+      <nav>
+        <button id="showRegister">Registrar Usuário</button>
+        <button id="showDeposit">Depósito</button>
+        <button id="showPay">Pagamento</button>
+        <button id="logoutBtn" style="margin-left:auto;background:#f43f5e">Sair</button>
+      </nav>
+
+      <div class="small">Usuário: <span id="currentEmail">—</span></div>
+      <div class="balance" id="balance">R$ 0.00</div>
+
+      <!-- FORMS -->
+      <div id="registerFormContainer" class="hidden">
+        <h2>Registrar Usuário</h2>
+        <input type="text" id="regPixkey" placeholder="Pix Key" />
+        <input type="text" id="regFirstName" placeholder="Nome" />
+        <input type="text" id="regLastName" placeholder="Sobrenome" />
+        <input type="text" id="regDocument" placeholder="Documento" />
+        <input type="password" id="regPassword" placeholder="Senha" />
+        <label><input type="checkbox" id="regEnterprise" /> Empresa (Enterprise)</label>
+        <input type="text" id="regEmail" placeholder="Email" />
+        <button id="registerBtn">Registrar</button>
+      </div>
+
+      <div id="depositFormContainer" class="hidden">
+        <h2>Depósito</h2>
+        <input type="number" id="depValue" placeholder="Valor" min="1" />
+        <button id="depositBtn">Depositar</button>
+      </div>
+
+      <div id="payFormContainer" class="hidden">
+        <h2>Pagamento via Pix</h2>
+        <input type="text" id="payTo" placeholder="Pix do destinatário" />
+        <input type="number" id="payAmount" placeholder="Valor" min="1" />
+        <button id="payBtn">Enviar</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <h1>Logs</h1>
+      <pre id="log" style="height:300px; overflow:auto; color:#c7d2fe; background:transparent; padding:8px; border-radius:8px;">Nenhuma ação ainda.</pre>
+    </div>
+
+  </div>
+
+</div>
+
+<script>
+  // Utils
+  const logEl = document.getElementById('log');
+  function log(msg){ logEl.textContent = `[${new Date().toLocaleTimeString()}] ${msg}\n` + logEl.textContent }
+
+  function showPage(showId){
+    ['loginPage','dashboardPage'].forEach(id => document.getElementById(id).classList.add('hidden'));
+    document.getElementById(showId).classList.remove('hidden');
+  }
+
+  function showForm(showId){
+    ['registerFormContainer','depositFormContainer','payFormContainer'].forEach(id => document.getElementById(id).classList.add('hidden'));
+    document.getElementById(showId).classList.remove('hidden');
+  }
+
+  async function api(path, opts){
+    try{
+      const res = await fetch(path, opts);
+      const text = await res.text();
+      return { ok: res.ok, status: res.status, body:text };
+    }catch(e){ return { ok:false, status:0, body:e.message } }
+  }
+
+  // LOGIN FLOW
+  const loginPage = document.getElementById('loginPage');
+  const dashboardPage = document.getElementById('dashboardPage');
+  const loginBtn = document.getElementById('loginBtn');
+
+  loginBtn.addEventListener('click', () => {
+    const email = document.getElementById('loginEmail').value.trim();
+    if(!email){ alert('Digite seu email'); return; }
+    localStorage.setItem('authToken', email);
+    document.getElementById('currentEmail').textContent = email;
+    showPage('dashboardPage');
+    updateBalance(email);
+  });
+
+  document.getElementById('logoutBtn').addEventListener('click', ()=>{
+    localStorage.removeItem('authToken');
+    showPage('loginPage');
+  });
+
+  // NAV BUTTONS
+  document.getElementById('showRegister').addEventListener('click', ()=>showForm('registerFormContainer'));
+  document.getElementById('showDeposit').addEventListener('click', ()=>showForm('depositFormContainer'));
+  document.getElementById('showPay').addEventListener('click', ()=>showForm('payFormContainer'));
+
+  // REGISTER
+  document.getElementById('registerBtn').addEventListener('click', async ()=>{
+    const data = {
+      pixkey: document.getElementById('regPixkey').value,
+      firstName: document.getElementById('regFirstName').value,
+      lastName: document.getElementById('regLastName').value,
+      document: document.getElementById('regDocument').value,
+      password: document.getElementById('regPassword').value,
+      typeAcc: document.getElementById('regEnterprise').checked ? 'ENTERPRISE':'COMMON',
+      balance: 0,
+      credit: 0,
+      email: document.getElementById('regEmail').value
+    };
+    log('Registrando '+data.email);
+    const res = await api('/api/client/register',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify(data)
+    });
+    log('Resposta: '+res.status+' - '+res.body);
+    if(res.ok) { alert('Usuário registrado!'); }
+  });
+
+  // DEPOSIT
+  document.getElementById('depositBtn').addEventListener('click', async ()=>{
+    const value = Number(document.getElementById('depValue').value);
+    const email = localStorage.getItem('authToken');
+    if(!email){ alert('Faça login primeiro'); return; }
+    const params = new URLSearchParams({email,value});
+    log('Solicitando depósito R$'+value+' para '+email);
+    const res = await api('/api/client/deposit?'+params.toString(), {method:'POST', headers:{'Authorization':'Bearer '+email}});
+    log('Resposta: '+res.status+' - '+res.body);
+    updateBalance(email);
+  });
+
+  // PAY
+  document.getElementById('payBtn').addEventListener('click', async ()=>{
+    const to = document.getElementById('payTo').value;
+    const amount = Number(document.getElementById('payAmount').value);
+    const email = localStorage.getItem('authToken');
+    if(!email){ alert('Faça login primeiro'); return; }
+    log(`Enviando R$${amount} de ${email} para pix ${to}`);
+    const res = await fetch('/api/client/pay',{
+      method:'POST',
+      headers:{'Content-Type':'application/json','Authorization':'Bearer '+email},
+      body: JSON.stringify({from:email,to,amount})
+    });
+    const text = await res.text();
+    log('Resposta: '+res.status+' - '+text);
+    updateBalance(email);
+  });
+
+  // UPDATE BALANCE
+  async function updateBalance(email){
+    if(!email) return;
+    document.getElementById('currentEmail').textContent = email;
+    try{
+      const token = localStorage.getItem('authToken');
+      const res = await fetch('/api/client/balance?email='+encodeURIComponent(email), {headers:{'Authorization':'Bearer '+token}});
+      if(!res.ok){ log('Falha ao obter saldo: '+res.status); return; }
+      const value = await res.json();
+      document.getElementById('balance').textContent = 'R$ '+ Number(value).toFixed(2);
+    }catch(e){ log('Erro: '+e.message); }
+  }
+
+  // RESTORE LOGIN
+  const saved = localStorage.getItem('authToken');
+  if(saved){ document.getElementById('currentEmail').textContent = saved; showPage('dashboardPage'); updateBalance(saved); }
+</script>
+
+</body>
+</html>

@@ -1,6 +1,8 @@
 package com.linkedin.picpay.core;
 
 import jakarta.persistence.Column;
+import jakarta.persistence.Enumerated;
+import jakarta.persistence.EnumType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
@@ -34,6 +36,7 @@ public class Account {
   private String password;
 
   @Column(name = "typeAcc", nullable = false)
+  @Enumerated(EnumType.STRING)
   private AccountsType typeAcc;
 
   @Column(name = "balance")
@@ -44,6 +47,14 @@ public class Account {
 
   @Column(name = "email")
   private String email;
+
+  // JPA requires a no-arg constructor. Keep it protected so only JPA/subclasses use it.
+  protected Account() {
+    // default to common account with zero balance/credit
+    this.balance = new BigDecimal(0);
+    this.credit = new BigDecimal(0);
+    this.typeAcc = AccountsType.COMMON;
+  }
 
   protected Account(
     String document,

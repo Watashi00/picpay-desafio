@@ -2,11 +2,7 @@ package com.linkedin.picpay.schemas;
 
 import com.linkedin.picpay.core.Account;
 
-import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 import lombok.Getter;
 import lombok.Setter;
@@ -16,15 +12,20 @@ import lombok.Setter;
 @Getter
 @Setter
 public class User extends Account {
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY )
-    private Long id;
+    // No duplicate id here - inherited from Account (@MappedSuperclass)
 
-    @Column(name = "fullname")
-    private String fullname = this.getFirstName() +' '+ this.getLastName();
+    public User() {
+        // JPA
+    }
 
     public User(String document, String firstName, String lastName, String password, boolean isEnterprise) {
         super(document, firstName, lastName, password, isEnterprise);
+    }
+
+    public String getFullname() {
+        String fn = this.getFirstName() == null ? "" : this.getFirstName();
+        String ln = this.getLastName() == null ? "" : this.getLastName();
+        return (fn + " " + ln).trim();
     }
 
 
