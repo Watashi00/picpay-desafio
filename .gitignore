@@ -32,3 +32,6 @@ build/
 ### VS Code ###
 .vscode/
 .mvn/
+
+### properties 
+src/main/resources/*.properties
